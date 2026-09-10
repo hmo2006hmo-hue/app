@@ -198,6 +198,74 @@ object BookRepository {
             }
         }
 
+        /**
+         * Best-effort lookup for tafsir books stored in the library catalog.
+         * Most of these books use the generic chapters/hadith schema, so the
+         * surah is located from the chapter title and the Quran verse text is
+         * then used as a fast anchor inside that chapter.
+         */
+        fun findTafsirText(surahName: String, ayahText: String, ayahNumber: Int): String? {
+            val chapters = getChapters()
+            val normalizedSurah = normalizeArabic(surahName)
+            val chapter = chapters.firstOrNull {
+                val title = normalizeArabic(it.title)
+                title == normalizedSurah ||
+                    title.contains(normalizedSurah) ||
+                    normalizedSurah.contains(title)
+            }
+
+            val tokens = normalizeArabic(ayahText)
+                .split(Regex("\\s+"))
+                .filter { it.length >= 2 }
+                .distinct()
+                .take(5)
+
+            fun query(tokensToUse: List<String>, chapterId: Long?): String? {
+                if (tokensToUse.isEmpty()) return null
+                val clauses = tokensToUse.joinToString(" AND ") { "content LIKE ? ESCAPE '\\'" }
+                val args = tokensToUse.map { "%${escapeLike(it)}%" }.toMutableList()
+                val sql = if (chapterId != null) {
+                    "SELECT content FROM hadith WHERE chapter_id = ? AND $clauses ORDER BY id LIMIT 1"
+                        .also { args.add(0, chapterId.toString()) }
+                } else {
+                    "SELECT content FROM hadith WHERE $clauses ORDER BY id LIMIT 1"
+                }
+                return db.rawQuery(sql, args.toTypedArray()).use { c ->
+                    if (c.moveToFirst()) c.getString(0)?.trim()?.takeIf { it.isNotBlank() } else null
+                }
+            }
+
+            // Prefer the exact chapter and progressively relax the text anchor
+            // because editions differ in punctuation/diacritics and may split
+            // a Quran verse from its tafsir in different ways.
+            for (count in tokens.size downTo 1) {
+                query(tokens.take(count), chapter?.id)?.let { return it }
+            }
+            for (count in tokens.size downTo 2) {
+                query(tokens.take(count), null)?.let { return it }
+            }
+
+            // Some editions do not repeat the Quran text. In that case, a
+            // chapter-level first item is a useful fallback instead of showing
+            // an empty tafsir panel.
+            chapter?.let {
+                db.rawQuery(
+                    "SELECT content FROM hadith WHERE chapter_id = ? ORDER BY id LIMIT 1",
+                    arrayOf(it.id.toString())
+                ).use { c ->
+                    if (c.moveToFirst()) c.getString(0)?.trim()?.takeIf { text -> text.isNotBlank() }?.let { return it }
+                }
+            }
+            return null
+        }
+
+        private fun normalizeArabic(value: String): String =
+            value.replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
+                .replace('أ', 'ا').replace('إ', 'ا').replace('آ', 'ا')
+                .replace('ى', 'ي').replace('ة', 'ه')
+                .replace(Regex("\\s+"), " ")
+                .trim()
+
         override fun close() {
             runCatching { db.close() }
             runCatching { tempFile.delete() }

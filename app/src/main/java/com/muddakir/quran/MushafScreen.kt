@@ -7,7 +7,6 @@ package com.muddakir.quran
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
@@ -18,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -26,11 +26,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -38,14 +38,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -96,6 +98,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -106,6 +109,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 /* ------------------------------------------------------------------------
  * أسماء السور الـ114 - مطابقة لبيانات السور المستخدمة في قارئ المصحف
@@ -139,8 +143,6 @@ private val AmiriFontFamily: FontFamily = FontFamily(
 /* ------------------------------------------------------------------------
  * ألوان واجهة قارئ المصحف الأصلية
  * ------------------------------------------------------------------------ */
-private val MUSHAF_TAFSIR_LIBRARY_IDS = setOf(6L, 9L, 10L, 14L, 24L, 31L, 51L, 89L, 98L, 121L, 133L, 195L, 213L, 228L, 259L, 263L)
-
 private const val MIN_PAGE = 1
 private const val MAX_PAGE = 604
 private const val CHROME_HIDE_DELAY_MS = 2700L
@@ -149,8 +151,6 @@ private const val PREFS_NAME = "mushaf_prefs"
 private const val KEY_CURRENT_PAGE = "mushaf_page"
 private const val KEY_PAGE_BOOKMARKS = "mushaf_bookmarks_v1"
 private const val KEY_AYAH_BOOKMARKS = "mushaf_ayah_bookmarks_all_v1"
-private const val KEY_QUALITY = "quran_download_quality"
-private const val KEY_RECITER = "quran_download_reciter"
 private const val KEY_KHATMA_PAGE = "khatma_current_page"
 
 private fun arabicNumber(n: Int): String =
@@ -179,13 +179,13 @@ private object MushafPrefs {
         clampPage(prefs(context).getInt(KEY_CURRENT_PAGE, 1))
 
     fun saveCurrentPage(context: Context, page: Int) {
-        prefs(context).edit().putInt(KEY_CURRENT_PAGE, page).apply()
+        prefs(context).edit { putInt(KEY_CURRENT_PAGE, page) }
     }
 
     fun loadKhatmaPage(context: Context, fallback: Int): Int = clampPage(context.getSharedPreferences("khatma_native", Context.MODE_PRIVATE).getInt(KEY_KHATMA_PAGE, fallback))
 
     fun saveKhatmaPage(context: Context, page: Int) {
-        context.getSharedPreferences("khatma_native", Context.MODE_PRIVATE).edit().putInt(KEY_KHATMA_PAGE, clampPage(page)).apply()
+        context.getSharedPreferences("khatma_native", Context.MODE_PRIVATE).edit { putInt(KEY_KHATMA_PAGE, clampPage(page)) }
     }
 
     private fun loadList(context: Context, key: String): MutableList<String> {
@@ -193,7 +193,7 @@ private object MushafPrefs {
         return try {
             val arr = JSONArray(raw)
             MutableList(arr.length()) { i -> arr.getString(i) }
-        } catch (e: JSONException) {
+        } catch (_: JSONException) {
             mutableListOf()
         }
     }
@@ -201,7 +201,7 @@ private object MushafPrefs {
     private fun saveList(context: Context, key: String, list: List<String>) {
         val arr = JSONArray()
         list.forEach { arr.put(it) }
-        prefs(context).edit().putString(key, arr.toString()).apply()
+        prefs(context).edit { putString(key, arr.toString()) }
     }
 
     fun isPageBookmarked(context: Context, page: Int): Boolean =
@@ -233,12 +233,6 @@ private object MushafPrefs {
         return !existed
     }
 
-    fun audioQuality(context: Context): String =
-        prefs(context).getString(KEY_QUALITY, "128") ?: "128"
-
-    fun audioReciter(context: Context): String =
-        prefs(context).getString(KEY_RECITER, "ar.abdulbasit") ?: "ar.abdulbasit"
-
     /**
      * رقم الآية (global) لآخر آية محفوظة كـ "آخر قراءة" (يستخدمها BookmarkWidget/AudioWidget).
      * يقرأ من نفس SharedPreferences الموجودة أصلًا بـ MainActivity (BOOKMARK_PREFS) حتى تبقى
@@ -250,12 +244,6 @@ private object MushafPrefs {
         return ayah.takeIf { it > 0 }
     }
 }
-
-private fun audioUrlFor(context: Context, ayah: UiAyah): String =
-    AudioRepository.globalUrl(ayah.global, AudioRepository.reciter(context), AudioRepository.quality(context))
-
-private fun audioUrlForGlobal(context: Context, globalAyahNumber: Int): String =
-    AudioRepository.globalUrl(globalAyahNumber, AudioRepository.reciter(context), AudioRepository.quality(context))
 
 /** يجمع نص آية كاملة (قد تمتد على أكثر من سطر بنفس الصفحة) من كلمات نوعها "word" فقط. */
 private fun ayahTextFor(page: QcfPage, verseKey: String): String =
@@ -285,6 +273,8 @@ private fun uiAyahFor(page: QcfPage, verseKey: String): UiAyah? {
  * الشاشة الرئيسية
  * ------------------------------------------------------------------------ */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+private val LIBRARY_TAFSIR_BOOK_IDS = setOf<Long>(6L, 9L, 10L, 14L, 24L, 31L, 51L, 89L, 98L, 121L, 133L, 195L, 213L, 228L, 259L, 263L)
+
 @Composable
 fun MushafScreen(
     onBack: () -> Unit = {},
@@ -332,8 +322,7 @@ fun MushafScreen(
                     val firstVerseKey = pageCache[p]?.lines
                         ?.asSequence()
                         ?.flatMap { it.words.asSequence() }
-                        ?.mapNotNull { it.verseKey }
-                        ?.firstOrNull()
+                        ?.firstNotNullOfOrNull { it.verseKey }
                     if (firstVerseKey != null) {
                         val parts = firstVerseKey.split(":")
                         if (parts.size == 2) {
@@ -353,7 +342,7 @@ fun MushafScreen(
     var interactionTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(interactionTick) {
         chromeVisible = true
-        delay(CHROME_HIDE_DELAY_MS)
+        delay(CHROME_HIDE_DELAY_MS.milliseconds)
         chromeVisible = false
     }
 
@@ -365,28 +354,13 @@ fun MushafScreen(
     var tafsirText by remember { mutableStateOf<String?>(null) }
     var tafsirOpen by remember { mutableStateOf(false) }
     var tafsirPickerOpen by remember { mutableStateOf(false) }
-    var tafsirLibrary by remember { mutableStateOf<List<LibraryCatalogRepository.Book>>(emptyList()) }
-    var tafsirLibraryLoading by remember { mutableStateOf(false) }
-    var tafsirLibraryError by remember { mutableStateOf<String?>(null) }
     var tafsirSearchQuery by remember { mutableStateOf("") }
-    val tafsirDownloadProgress = remember { mutableStateMapOf<Long, Float>() }
-
-    LaunchedEffect(tafsirPickerOpen) {
-        if (!tafsirPickerOpen) return@LaunchedEffect
-        tafsirLibraryLoading = true
-        tafsirLibraryError = null
-        tafsirSearchQuery = ""
-        runCatchingCancellable {
-            LibraryCatalogRepository.getBooks(context)
-                .filter { it.id in MUSHAF_TAFSIR_LIBRARY_IDS }
-                .sortedBy { it.title }
-        }.onSuccess { tafsirLibrary = it }
-            .onFailure {
-                tafsirLibrary = emptyList()
-                tafsirLibraryError = it.message ?: "تعذر تحميل قائمة التفاسير"
-            }
-        tafsirLibraryLoading = false
-    }
+    var libraryTafsirBooks by remember { mutableStateOf<List<LibraryCatalogRepository.Book>>(emptyList()) }
+    var selectedLibraryTafsirId by remember { mutableStateOf<Long?>(null) }
+    var libraryTafsirBusyId by remember { mutableStateOf<Long?>(null) }
+    var libraryTafsirProgress by remember { mutableStateOf(0f) }
+    var libraryTafsirSession by remember { mutableStateOf<BookRepository.ReaderSession?>(null) }
+    val latestLibraryTafsirSession = rememberUpdatedState(libraryTafsirSession)
 
     var pageJumpOpen by remember { mutableStateOf(false) }
     var pageJumpValue by remember { mutableStateOf("") }
@@ -401,6 +375,9 @@ fun MushafScreen(
     var audioBusy by remember { mutableStateOf(false) }
     var tafsirAyah by remember { mutableStateOf<UiAyah?>(null) }
     val tafsirSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    DisposableEffect(Unit) {
+        onDispose { latestLibraryTafsirSession.value?.close() }
+    }
     DisposableEffect(Unit) {
         onDispose { latestMediaPlayer.value?.release() }
     }
@@ -517,7 +494,52 @@ fun MushafScreen(
                 audioPositionMs = runCatching { mp.currentPosition.toLong() }.getOrDefault(audioPositionMs)
                 audioDurationMs = runCatching { mp.duration.toLong() }.getOrDefault(audioDurationMs)
             }
-            delay(200)
+            delay(200.milliseconds)
+        }
+    }
+
+    fun loadLibraryTafsir(book: LibraryCatalogRepository.Book, ayah: UiAyah) {
+        scope.launch {
+            selectedLibraryTafsirId = book.id
+            tafsirText = null
+            libraryTafsirSession?.close()
+            libraryTafsirSession = null
+            runCatchingCancellable {
+                val opened = BookRepository.openSession(context, book.dbFile)
+                opened to withContext(Dispatchers.IO) {
+                    opened.findTafsirText(ayah.surahName, ayah.text, ayah.numberInSurah)
+                }
+            }.onSuccess { (opened, text) ->
+                libraryTafsirSession = opened
+                tafsirText = text ?: "لم يتم العثور على تفسير مباشر لهذه الآية في هذا الكتاب."
+            }.onFailure {
+                tafsirText = "تعذر قراءة التفسير: ${it.message ?: "خطأ غير معروف"}"
+            }
+        }
+    }
+
+    fun downloadAndSelectLibraryTafsir(book: LibraryCatalogRepository.Book, ayah: UiAyah) {
+        if (libraryTafsirBusyId != null) return
+        scope.launch {
+            libraryTafsirBusyId = book.id
+            libraryTafsirProgress = 0f
+            runCatchingCancellable {
+                LibraryBookManager.install(context, book) { fraction ->
+                    libraryTafsirProgress = fraction.coerceIn(0f, 1f)
+                }
+            }.onSuccess {
+                libraryTafsirBooks = libraryTafsirBooks.map {
+                    if (it.id == book.id) it.copy(isDownloaded = true) else it
+                }
+                libraryTafsirBusyId = null
+                libraryTafsirProgress = 1f
+                tafsirPickerOpen = false
+                loadLibraryTafsir(book.copy(isDownloaded = true), ayah)
+            }.onFailure {
+                libraryTafsirBusyId = null
+                libraryTafsirProgress = 0f
+                tafsirText = "تعذر تنزيل التفسير: ${it.message ?: "خطأ غير معروف"}"
+            }
         }
     }
 
@@ -553,13 +575,9 @@ fun MushafScreen(
 
     val selectedVerseKey = selectedAyah?.let { "${it.surahNumber}:${it.numberInSurah}" }
     val highlightColor = appPalette.teal.copy(alpha = if (appTheme == AppThemeName.BLACK || appTheme == AppThemeName.NIGHT) 0.30f else 0.22f)
-    val palette = appPalette
-    val readerBg = palette.readerBackground
-    val readerText = palette.readerText
-    val readerMuted = palette.readerMuted
-    val readerGold = palette.gold
+    val readerBg = appPalette.readerBackground
 
-    CompositionLocalProvider(LocalAppPalette provides palette, LocalLayoutDirection provides LayoutDirection.Rtl) {
+    CompositionLocalProvider(LocalAppPalette provides appPalette, LocalLayoutDirection provides LayoutDirection.Rtl) {
     Box(modifier = Modifier.fillMaxSize().background(readerBg)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             HorizontalPager(
@@ -597,7 +615,7 @@ fun MushafScreen(
             TopAppBar(
                 title = { Text("المصحف") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = palette.teal,
+                    containerColor = appPalette.teal,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
@@ -609,7 +627,7 @@ fun MushafScreen(
                 },
                 actions = {
                     IconButton(onClick = { pageJumpValue = currentPageNumber.toString(); pageJumpOpen = true; bump() }) {
-                        Icon(Icons.Default.List, contentDescription = "تصفح الصفحات")
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "تصفح الصفحات")
                     }
                     IconButton(onClick = {
                         currentPageBookmarked = MushafPrefs.togglePageBookmark(context, currentPageNumber)
@@ -629,16 +647,16 @@ fun MushafScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(palette.paper.copy(alpha = 0.98f), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(appPalette.paper.copy(alpha = 0.98f), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .padding(horizontal = 14.dp, vertical = 9.dp)
             ) {
                 Text(
                     "🎧 سورة ${SURAH_NAMES[audioSurah - 1]} — الآية ${arabicNumber(audioAyah)}",
-                    color = palette.ink, fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold,
+                    color = appPalette.ink, fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start
                 )
                 audioStatus?.let {
-                    Text(it, color = palette.soft, fontFamily = AmiriFontFamily, fontSize = 12.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                    Text(it, color = appPalette.soft, fontFamily = AmiriFontFamily, fontSize = 12.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 }
                 if (audioDurationMs > 0L) {
                     Slider(
@@ -651,15 +669,15 @@ fun MushafScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(formatAudioTime(audioPositionMs), color = palette.soft, fontSize = 11.sp)
-                        Text(formatAudioTime(audioDurationMs), color = palette.soft, fontSize = 11.sp)
+                        Text(formatAudioTime(audioPositionMs), color = appPalette.soft, fontSize = 11.sp)
+                        Text(formatAudioTime(audioDurationMs), color = appPalette.soft, fontSize = 11.sp)
                     }
                 } else {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                     TextButton(enabled = audioGlobal > 1 && !audioBusy, onClick = { playAudioGlobal(audioGlobal - 1) }) { Text("السابق", fontFamily = AmiriFontFamily) }
-                    Button(onClick = { if (audioPlaying) { runCatching { mediaPlayer?.pause() }; audioPlaying = false } else { runCatching { mediaPlayer?.start() }; audioPlaying = true } }, enabled = !audioBusy && mediaPlayer != null, colors = ButtonDefaults.buttonColors(containerColor = palette.teal)) {
+                    Button(onClick = { if (audioPlaying) { runCatching { mediaPlayer?.pause() }; audioPlaying = false } else { runCatching { mediaPlayer?.start() }; audioPlaying = true } }, enabled = !audioBusy && mediaPlayer != null, colors = ButtonDefaults.buttonColors(containerColor = appPalette.teal)) {
                         Text(if (audioPlaying) "إيقاف مؤقت" else "تشغيل", color = Color.White, fontFamily = AmiriFontFamily)
                     }
                     TextButton(enabled = audioGlobal < 6236 && !audioBusy, onClick = { playAudioGlobal(audioGlobal + 1) }) { Text("التالي", fontFamily = AmiriFontFamily) }
@@ -706,9 +724,23 @@ fun MushafScreen(
                     ayahBookmarked = MushafPrefs.toggleAyahBookmark(context, ayah.surahNumber, ayah.numberInSurah)
                 },
                 onTafsir = {
-                    tafsirPickerOpen = true
-                    sheetOpen = false
-                    selectedAyah = null
+                    scope.launch {
+                        tafsirText = null
+                        tafsirAyah = ayah
+                        tafsirOpen = true
+                        tafsirPickerOpen = false
+                        tafsirSearchQuery = ""
+                        sheetOpen = false
+                        selectedAyah = null
+                        runCatchingCancellable {
+                            libraryTafsirBooks = LibraryCatalogRepository.getBooks(context)
+                                .filter { it.id in LIBRARY_TAFSIR_BOOK_IDS }
+                            if (TafsirRepository.installedItems(context).isEmpty()) TafsirRepository.ensureInstalled(context)
+                            TafsirRepository.get(context, ayah.surahNumber, ayah.numberInSurah)?.text
+                        }
+                            .onSuccess { tafsirText = it ?: "لا يوجد نص لهذه الآية في التفسير المحدد." }
+                            .onFailure { tafsirText = "تعذر تحميل التفسير: ${it.message ?: "خطأ غير معروف"}" }
+                    }
                 },
                 onListen = {
                     playAudioGlobal(ayah.global)
@@ -720,121 +752,66 @@ fun MushafScreen(
         }
     }
 
-    if (tafsirPickerOpen) {
-        val query = tafsirSearchQuery.trim()
-        val filtered = if (query.isBlank()) tafsirLibrary else tafsirLibrary.filter {
-            it.title.contains(query, ignoreCase = true) ||
-                (it.author?.contains(query, ignoreCase = true) == true)
-        }
+    // التفسير: اختيار الكتب أصبح عموديًا وقابلًا للبحث بدل القائمة الأفقية الثقيلة.
+    if (tafsirOpen) {
         ModalBottomSheet(
-            onDismissRequest = { tafsirPickerOpen = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-            containerColor = palette.paper
+            onDismissRequest = { tafsirOpen = false },
+            sheetState = tafsirSheetState,
+            containerColor = appPalette.paper
         ) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text("التفاسير", fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold, fontSize = 25.sp, color = palette.ink, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
-                Text("اختر التفسير من مكتبة التفاسير", fontFamily = AmiriFontFamily, fontSize = 12.sp, color = palette.soft, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = tafsirSearchQuery,
-                    onValueChange = { tafsirSearchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("بحث عن اسم التفسير", fontFamily = AmiriFontFamily) }
-                )
-                Spacer(Modifier.height(8.dp))
-                when {
-                    tafsirLibraryLoading -> {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
-                        Text("جاري تحميل قائمة التفاسير…", fontFamily = AmiriFontFamily, color = palette.soft, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+                Text("التفسير", fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold, fontSize = 27.sp, color = appPalette.ink, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                tafsirAyah?.let { a ->
+                    Text("سورة ${a.surahName} • الآية ${arabicNumber(a.numberInSurah)}", fontFamily = AmiriFontFamily, color = appPalette.gold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                    Spacer(Modifier.height(8.dp))
+                    Card(colors = CardDefaults.cardColors(containerColor = appPalette.paper2), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(a.text, fontFamily = AmiriFontFamily, fontSize = 19.sp, lineHeight = 34.sp, color = appPalette.ink, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(14.dp))
                     }
-                    tafsirLibraryError != null -> {
-                        Text(tafsirLibraryError!!, fontFamily = AmiriFontFamily, color = Color(0xFFB00020), modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(10.dp))
+                    Card(onClick = { tafsirPickerOpen = !tafsirPickerOpen }, colors = CardDefaults.cardColors(containerColor = appPalette.paper2), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("كتب التفاسير", fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold, fontSize = 19.sp, color = appPalette.ink)
+                                Text(if (selectedLibraryTafsirId != null) libraryTafsirBooks.firstOrNull { it.id == selectedLibraryTafsirId }?.title ?: "تفسير من المكتبة" else "اضغط لاختيار تفسير من المكتبة", fontFamily = AmiriFontFamily, fontSize = 14.sp, color = appPalette.soft)
+                            }
+                            Text(if (tafsirPickerOpen) "⌃" else "⌄", fontSize = 24.sp, color = appPalette.ink)
+                        }
                     }
-                    filtered.isEmpty() -> {
-                        Text("لا يوجد تفسير مطابق للبحث", fontFamily = AmiriFontFamily, color = palette.soft, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), textAlign = TextAlign.Center)
-                    }
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)
-                        ) {
-                            items(filtered, key = { it.id }) { book ->
-                                val progress = tafsirDownloadProgress[book.id]
-                                val installed = book.isDownloaded || LibraryBookManager.isInstalled(context, book)
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = palette.paper2)
-                                ) {
-                                    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp)) {
-                                        Text(book.title, fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = palette.ink, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
-                                        book.author?.takeIf { it.isNotBlank() }?.let { author ->
-                                            Text(author, fontFamily = AmiriFontFamily, fontSize = 11.sp, color = palette.soft, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                    if (tafsirPickerOpen) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(value = tafsirSearchQuery, onValueChange = { tafsirSearchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) }, label = { Text("ابحث عن اسم التفسير", fontFamily = AmiriFontFamily) }, textStyle = TextStyle(textDirection = TextDirection.Rtl, fontFamily = AmiriFontFamily))
+                        val filteredTafsirs = libraryTafsirBooks.filter {
+                            tafsirSearchQuery.isBlank() || it.title.contains(tafsirSearchQuery.trim(), ignoreCase = true) || it.author.orEmpty().contains(tafsirSearchQuery.trim(), ignoreCase = true)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        LazyColumn(modifier = Modifier.fillMaxWidth().height(300.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            items(filteredTafsirs, key = { it.id }) { book ->
+                                val busy = libraryTafsirBusyId == book.id
+                                Card(colors = CardDefaults.cardColors(containerColor = if (selectedLibraryTafsirId == book.id) appPalette.paper2 else appPalette.paper), shape = RoundedCornerShape(13.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(book.title, fontFamily = AmiriFontFamily, fontWeight = if (selectedLibraryTafsirId == book.id) FontWeight.Bold else FontWeight.Normal, fontSize = 17.sp, color = appPalette.ink, textAlign = TextAlign.Start)
+                                            Text(if (book.isDownloaded) "مثبت على الجهاز" else "غير محمل", fontFamily = AmiriFontFamily, fontSize = 13.sp, color = if (book.isDownloaded) appPalette.gold else appPalette.soft)
                                         }
-                                        if (progress != null) {
-                                            Spacer(Modifier.height(6.dp))
-                                            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                                            Text("${(progress * 100).toInt()}٪", fontFamily = AmiriFontFamily, fontSize = 10.sp, color = palette.soft, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
-                                        } else {
-                                            Spacer(Modifier.height(6.dp))
-                                            Button(
-                                                onClick = {
-                                                    scope.launch {
-                                                        tafsirDownloadProgress[book.id] = 0f
-                                                        try {
-                                                            if (!LibraryBookManager.isInstalled(context, book)) {
-                                                                LibraryBookManager.install(context, book) { fraction ->
-                                                                    tafsirDownloadProgress[book.id] = fraction
-                                                                }
-                                                            }
-                                                            tafsirDownloadProgress.remove(book.id)
-                                                            tafsirPickerOpen = false
-                                                            context.startActivity(LibrarySqliteReaderActivity.intent(context, book.dbFile, book.title))
-                                                        } catch (t: Throwable) {
-                                                            tafsirDownloadProgress.remove(book.id)
-                                                            tafsirLibraryError = "فشل تنزيل ${book.title}: ${t.message ?: "خطأ غير معروف"}"
-                                                        }
-                                                    }
-                                                },
-                                                enabled = progress == null,
-                                                colors = ButtonDefaults.buttonColors(containerColor = if (installed) palette.gold else palette.teal),
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Text(if (installed) "فتح التفسير" else "تحميل التفسير", color = if (installed) palette.ink else Color.White, fontFamily = AmiriFontFamily)
+                                        if (busy) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                CircularProgressIndicator(progress = { libraryTafsirProgress.coerceIn(0f, 1f) }, modifier = Modifier.size(30.dp), strokeWidth = 3.dp)
+                                                Text("${(libraryTafsirProgress * 100).toInt()}%", fontSize = 10.sp, color = appPalette.soft)
                                             }
+                                        } else if (book.isDownloaded) {
+                                            TextButton(onClick = { tafsirPickerOpen = false; loadLibraryTafsir(book, a) }) { Text(if (selectedLibraryTafsirId == book.id) "محدد" else "اختيار", fontFamily = AmiriFontFamily) }
+                                        } else {
+                                            Button(onClick = { downloadAndSelectLibraryTafsir(book, a) }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)) { Text("تحميل", fontFamily = AmiriFontFamily, fontSize = 13.sp) }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                Spacer(Modifier.height(4.dp))
-            }
-        }
-    }
-
-    // التفسير: لوحة سفلية مريحة للقراءة بدل AlertDialog الضيق.
-    if (tafsirOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { tafsirOpen = false },
-            sheetState = tafsirSheetState,
-            containerColor = palette.paper
-        ) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Text("التفسير", fontFamily = AmiriFontFamily, fontWeight = FontWeight.Bold, fontSize = 27.sp, color = palette.ink, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
-                tafsirAyah?.let { a ->
-                    Text("سورة ${a.surahName} • الآية ${arabicNumber(a.numberInSurah)}", fontFamily = AmiriFontFamily, color = palette.gold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                     Spacer(Modifier.height(10.dp))
-                    Card(colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = palette.paper2), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                        Text(a.text, fontFamily = AmiriFontFamily, fontSize = 20.sp, lineHeight = 36.sp, color = palette.ink, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(16.dp))
-                    }
-                    Spacer(Modifier.height(12.dp))
                 }
                 Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                    Text(tafsirText ?: "جاري تحميل التفسير…", fontFamily = AmiriFontFamily, fontSize = 18.sp, lineHeight = 34.sp, color = palette.ink, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                    Text(tafsirText ?: "جاري تحميل التفسير…", fontFamily = AmiriFontFamily, fontSize = 18.sp, lineHeight = 34.sp, color = appPalette.ink, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 }
                 TextButton(onClick = { tafsirOpen = false }, modifier = Modifier.align(Alignment.Start)) { Text("إغلاق", fontFamily = AmiriFontFamily) }
                 Spacer(Modifier.height(8.dp))
@@ -912,7 +889,7 @@ private fun QcfPageBody(
         ) {
             val density = LocalDensity.current
             val textMeasurer = rememberTextMeasurer()
-            val availableWidthPx = with(density) { maxWidth.toPx() }
+            val availableWidthPx = with(density) { this@BoxWithConstraints.maxWidth.toPx() }
             val touchSlop = LocalViewConfiguration.current.touchSlop
 
             // نحسب حجم خط موحّد لهذه الصفحة بحيث يملأ أطول سطر فيها كامل عرض الشاشة
@@ -940,8 +917,6 @@ private fun QcfPageBody(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.Center
             ) {
-                val firstSurahOnPage = page.surahs.firstOrNull()
-
                 for (line in page.lines) {
                     val hasHeader = line.words.any { it.type == "surah_header" }
                     val hasBismillah = line.words.any { it.type == "bismillah" }
@@ -988,7 +963,7 @@ private fun QcfPageBody(
                                 mutableStateOf<TextLayoutResult?>(null)
                             }
                             val annotated = remember(page.page, line.line, selectedVerseKey, highlightColor) {
-                                buildLineAnnotatedString(line, includeAnnotations = true, selectedVerseKey = selectedVerseKey, selectedHighlight = highlightColor)
+                                buildLineAnnotatedString(line, includeAnnotations = true, selectedVerseKey = selectedVerseKey)
                             }
                             Text(
                                 text = annotated,
@@ -1075,10 +1050,6 @@ private fun QcfPageBody(
                         }
                     }
                 }
-
-                if (firstSurahOnPage == null) {
-                    // احتياط: صفحة بلا معلومات سور (نادر) - لا شيء إضافي هنا.
-                }
             }
         }
 
@@ -1091,8 +1062,7 @@ private fun QcfPageBody(
 private fun buildLineAnnotatedString(
     line: QcfLine,
     includeAnnotations: Boolean,
-    selectedVerseKey: String? = null,
-    selectedHighlight: Color = Color.Transparent
+    selectedVerseKey: String? = null
 ): AnnotatedString = buildAnnotatedString {
     // بيانات QCF تخزن الكلمات بترتيب القراءة العربي (من أول الكلمة إلى آخرها)،
     // لكن أحرف QCF هي Private-Use glyphs ويعاملها محرك النص كرموز LTR.
@@ -1214,7 +1184,7 @@ private fun AyahSheetContent(
             subtitle = "حفظ الآية للرجوع إليها لاحقًا",
             onClick = onToggleBookmark
         )
-        SheetActionRow(title = "التفاسير", subtitle = "اختيار تفسير من مكتبة التفاسير", onClick = onTafsir)
+        SheetActionRow(title = "عرض التفسير", subtitle = "قراءة تفسير الآية بشكل مريح", onClick = onTafsir)
         SheetActionRow(title = "الاستماع إلى الآية", subtitle = "تشغيل صوت القارئ المحدد", onClick = onListen)
         Spacer(Modifier.height(12.dp))
     }
