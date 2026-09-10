@@ -1,0 +1,11 @@
+{
+  "calendar_note": "التاريخ الهجري المعروض يعتمد على تقويم الجهاز وقد يختلف يومًا بحسب ثبوت الهلال والمرجع المعتمد.",
+  "events": [
+    {"month":1,"day":10,"title":"عاشوراء","subtitle":"ذكرى استشهاد الإمام الحسين عليه السلام","icon":"🖤","actions":[{"label":"فتح الزيارات","href":"ziyarat.html"},{"label":"فتح الأدعية","href":"library.html"}]},
+    {"month":2,"day":20,"title":"الأربعين","subtitle":"ذكرى أربعين الإمام الحسين عليه السلام","icon":"🖤","actions":[{"label":"فتح الزيارات","href":"ziyarat.html"},{"label":"فتح الأدعية","href":"library.html"}]},
+    {"month":7,"day":27,"title":"المبعث النبوي","subtitle":"ذكرى بعثة النبي محمد صلى الله عليه وآله","icon":"✨","actions":[{"label":"الصلاة على محمد وآل محمد","href":"adhkar.html"},{"label":"فتح الأدعية","href":"library.html"}]},
+    {"month":8,"day":15,"title":"ليلة النصف من شعبان","subtitle":"مناسبة ولادة الإمام المهدي عليه السلام بحسب المشهور","icon":"🌙","actions":[{"label":"دعاء الفرج","href":"adhkar.html#reminder=evening"},{"label":"فتح الأدعية","href":"library.html"}]},
+    {"month":12,"day":9,"title":"يوم عرفة","subtitle":"يوم الدعاء والعبادة","icon":"🤲","actions":[{"label":"فتح الأدعية","href":"library.html"}]},
+    {"month":12,"day":18,"title":"عيد الغدير","subtitle":"يوم الغدير المبارك","icon":"💚","actions":[{"label":"الصلاة على محمد وآل محمد","href":"adhkar.html"},{"label":"فتح الأدعية","href":"library.html"}]}
+  ]
+}

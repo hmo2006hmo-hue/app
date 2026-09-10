@@ -1,0 +1,27 @@
+QuranStudy - Tafsir reader fix applied to uploaded project
+
+1) Tafsir lookup
+- Fixed the tafsir reader so a valid SQLite database is not treated as "no text" merely because its column/table layout differs from the expected canonical schema.
+- Expanded schema discovery for common legacy/export variants, including:
+  - surah/sura/sora naming variants
+  - ayah/aya/verse naming variants
+  - text/tafsir/tafseer/explanation/content naming variants
+  - start/end ayah ranges
+  - flattened global ayah indexes
+  - composite locations such as "surah:ayah"
+- Added compatibility for legacy zero-based surah numbering and small ayah-number offsets.
+- Added a last-resort read-only coordinate lookup that inspects likely numeric location columns instead of failing silently.
+- The selected tafsir remains preferred. If it is a valid installed database but cannot serve the requested ayah, the reader can fall back to another installed tafsir instead of returning an empty result.
+
+2) Tafsir catalog test
+- Corrected the instrumented catalog URL assertion to match the current GitHub release URLs actually used by TafsirRepository.
+
+3) Existing functionality
+- Downloading, file validation, selection, deletion, and the existing UI flow were preserved.
+- No tafsir database content was altered or embedded into the APK.
+
+Validation performed in this environment:
+- ZIP was successfully read and rewritten while preserving project paths.
+- Modified Kotlin file delimiter counts are balanced.
+- The source tree was inspected to confirm the reader and Mushaf tafsir flows still call TafsirRepository.get().
+- An actual Android Gradle build/runtime test could not be executed because the supplied project has no gradle-wrapper.jar and this environment has no Android SDK/Gradle toolchain installed.

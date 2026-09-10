@@ -1,0 +1,80 @@
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:42:                        val plaintext = File(context.filesDir, "$ROOT_DIR/${book.dbFile}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:50:                                    val part = File(context.filesDir, "$ROOT_DIR/${book.dbFile}.enc.part")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:60:                        val file = File(context.filesDir, "$ROOT_DIR/${safeExternalId(book.externalId)}/book.json")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:80:                else -> error("صيغة كتاب غير مدعومة: ${book.format}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:118:                if (part.exists() && !part.delete()) error("تعذر تنظيف التنزيل السابق")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:135:                    if (!connection.url.protocol.equals("https", ignoreCase = true)) throw IOException("تنزيل مرفوض: إعادة التوجيه إلى رابط غير HTTPS")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:137:                    if (code !in 200..299) throw IOException("فشل تنزيل الكتاب: HTTP $code")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:152:                                if (expectedBytes != null && total > expectedBytes) throw IOException("حجم الملف أكبر من المتوقع")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:157:                    if (expectedBytes != null && total != expectedBytes) throw IOException("حجم الملف غير مطابق: expected=$expectedBytes actual=$total")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:161:                    if (expectedSha != null && actualSha != expectedSha) throw IOException("SHA-256 غير مطابق للكتاب")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:171:                if (t is kotlinx.coroutines.CancellationException) throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:176:        throw (lastError ?: IOException("تعذر تنزيل الكتاب"))
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:201:                File(context.filesDir, "$ROOT_DIR/${book.externalId}/book.json").takeIf {
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:223:                            if (!file.delete()) error("تعذر حذف ملف الكتاب: ${file.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:234:    private const val ROOT_DIR = "library/books"
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:238:        if (backup.exists() && !backup.delete()) error("تعذر تنظيف النسخة الاحتياطية القديمة")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:243:                if (!target.renameTo(backup)) error("تعذر حفظ الكتاب الحالي مؤقتًا")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:248:                error("تعذر تثبيت الكتاب")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryBookManager.kt:257:            throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:98:        error("Unable to resolve global ayah number: $global")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:125:                            throw IllegalStateException("تعذر تنظيف ملف الصوت المؤقت")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:139:                                throw IllegalStateException("تنزيل مرفوض: إعادة التوجيه إلى رابط غير HTTPS")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:142:                                throw IllegalStateException("HTTP ${connection.responseCode}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:166:                            throw IllegalStateException("ملف صوتي فارغ أو غير صالح")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:171:                            throw IllegalStateException("تعذر تنظيف النسخة الاحتياطية للصوت")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:177:                                    throw IllegalStateException("تعذر حفظ الملف الصوتي الحالي")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:183:                                throw IllegalStateException("تعذر حفظ الملف الصوتي")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:190:                            throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:195:                        if (e is kotlinx.coroutines.CancellationException) throw e
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AudioRepository.kt:203:                saved ?: throw (lastError ?: IllegalStateException("تعذر تنزيل الصوت"))
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/MushafScreen.kt:266:    if (parts.size != 2) return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/MushafScreen.kt:267:    val surahNumber = parts[0].toIntOrNull() ?: return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/MushafScreen.kt:268:    val numberInSurah = parts[1].toIntOrNull() ?: return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/MushafScreen.kt:269:    if (surahNumber !in 1..114 || numberInSurah <= 0) return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/MushafScreen.kt:270:    val global = runCatching { globalAyahNumber(surahNumber, numberInSurah) }.getOrNull() ?: return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/MushafScreen.kt:274:        surahName = SURAH_NAMES.getOrNull(surahNumber - 1) ?: return null,
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookCrypto.kt:84:                    if (!magic.contentEquals(MAGIC)) throw IOException("Invalid protected book header")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookCrypto.kt:86:                    if (ivSize != IV_SIZE) throw IOException("Invalid protected book IV")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookCrypto.kt:103:            if (!tempPart.renameTo(tempFile)) throw IOException("Unable to prepare protected book")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookCrypto.kt:108:            throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookCrypto.kt:127:            if (n < 0) throw IOException("Unexpected end of protected book")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QcfQuranRepository.kt:71:        if (pageNumber < MIN_PAGE || pageNumber > MAX_PAGE) return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QuranSearchRepository.kt:98:            error("Invalid Quran search database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QuranSearchRepository.kt:103:            error("Unable to clear previous Quran search backup")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QuranSearchRepository.kt:111:                    error("Unable to preserve current Quran search database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QuranSearchRepository.kt:117:                error("Unable to install Quran search database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QuranSearchRepository.kt:122:            throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryCatalogRepository.kt:63:            error("Invalid library catalog database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryCatalogRepository.kt:74:                error("Unable to stage existing library catalog")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryCatalogRepository.kt:85:            error("Unable to install library catalog")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryCatalogRepository.kt:173:        if (!file.isFile) error("Library catalog is not installed")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryCatalogRepository.kt:177:            throw IllegalStateException("Unable to open library catalog", e)
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/QuranRepository.kt:57:            return null
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/NativeContentRepository.kt:62:                ?: error("الكتاب غير موجود في كتالوج المكتبة")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AppRoot.kt:595:            if (t is kotlinx.coroutines.CancellationException) throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AppRoot.kt:1125:        catch (t: Throwable) { if (t is kotlinx.coroutines.CancellationException) throw t; message = "تعذر تحديث المكتبة: ${t.message ?: "خطأ غير معروف"}" }
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/AppRoot.kt:1156:                                    } catch (t: Throwable) { if (t is kotlinx.coroutines.CancellationException) throw t; message = "فشل تجهيز ${book.title}: ${t.message ?: "خطأ غير معروف"}" }
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:70:                if (t is kotlinx.coroutines.CancellationException) throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:74:        throw (lastError ?: IOException("Download failed"))
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:87:        if (partFile.exists() && !partFile.delete()) error("Unable to clear partial download: ${partFile.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:88:        if (encryptedPartFile.exists() && !encryptedPartFile.delete()) error("Unable to clear partial encrypted download: ${encryptedPartFile.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:104:                throw IOException("تنزيل مرفوض: إعادة التوجيه إلى رابط غير HTTPS")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:107:            if (code !in 200..299) throw IOException("Download failed with HTTP $code")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:121:                        if (expectedBytes != null && total > expectedBytes) throw IOException("Downloaded file is larger than expected")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:126:            if (expectedBytes != null && total != expectedBytes) throw IOException("Downloaded size mismatch: expected=$expectedBytes actual=$total")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:130:            if (expectedSha != null && sha256 != expectedSha) throw IOException("SHA-256 mismatch for ${finalFile.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:131:            if (!isValidSqliteDatabase(partFile)) throw IOException("Downloaded file is not a valid SQLite database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:141:            throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:165:            .getOrElse { throw IllegalArgumentException("Invalid download URL", it) }
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:200:            error("Unable to clear previous backup: ${backup.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:207:                    error("Unable to preserve existing database: ${finalFile.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:214:                error("Unable to install database: ${finalFile.name}")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/DownloadRepository.kt:219:            throw t
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookRepository.kt:67:            error("Invalid SQLite database: $fileName")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookRepository.kt:75:            if (target.exists() && !target.renameTo(backup)) error("Unable to preserve existing protected database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookRepository.kt:78:                error("Unable to install protected database")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookRepository.kt:216:            throw IllegalStateException("Book is not installed: $fileName")
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/BookRepository.kt:227:            throw IllegalStateException("Unable to open protected book database: $fileName", e)
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/LibraryCatalogActivity.kt:195:                                                    if (error is kotlinx.coroutines.CancellationException) throw error
+/mnt/data/audit44/app/src/main/java/com/muddakir/quran/CoroutineSafety.kt:14:        throw e
