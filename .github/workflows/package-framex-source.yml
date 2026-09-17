@@ -1,0 +1,32 @@
+name: Package FrameX source
+
+on:
+  push:
+    branches:
+      - framex-source-package
+
+jobs:
+  package-framex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout helper repository
+        uses: actions/checkout@v4
+
+      - name: Fetch FrameX source
+        uses: actions/checkout@v4
+        with:
+          repository: MaheshSharan/FrameX-Android
+          ref: main
+          path: FrameX-Android
+          fetch-depth: 1
+
+      - name: Create source archive
+        run: |
+          zip -qr FrameX-Android-main.zip FrameX-Android -x 'FrameX-Android/.git/*'
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrameX-Android-main-source
+          path: FrameX-Android-main.zip
+          retention-days: 1
